@@ -8,7 +8,7 @@ streamlit = "*"
 openai = "*"
 chromadb = "*"
 langchain-text-splitters = "*"
-pypdf = "*"
+pymupdf = "*"
 
 [dev-packages]
 
