@@ -4,6 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+streamlit = "*"
+openai = "*"
+chromadb = "*"
+langchain-text-splitters = "*"
+requests = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 
