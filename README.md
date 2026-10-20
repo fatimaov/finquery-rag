@@ -6,16 +6,11 @@ This project is inspired by the **Build a RAG App** lesson from Codecademy's [Re
 
 ## Data Source
 
-The application uses the freely accessible online textbook [A Plain Language Guide to Personal Financial Planning](https://pressbooks.salemstate.edu/personalfinance/) as its knowledge source.
+The preparation script downloads the [Personal Finance textbook PDF](https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf) from Saylor Academy and extracts Chapter 1. The extracted text is intended as source material for the RAG application.
 
-The goal is to retrieve relevant information from the book and use it to generate context-aware answers to users' questions.
-
-### Data attribution
-
-This project uses material from **A Plain Language Guide to Personal Financial Planning** by Miranda Lam (© 2025), published by Salem State University. [View the original book](https://pressbooks.salemstate.edu/personalfinance/). The book's published license is [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)](https://creativecommons.org/licenses/by-nc-nd/4.0/).
+Refer to the source document for its attribution and reuse terms.
 
 ## Tech Stack
-
 - **Python** — Core application logic
 - **Streamlit** — Web interface
 - **ChromaDB** — Vector storage, embeddings, and similarity search
