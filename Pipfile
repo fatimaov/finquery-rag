@@ -8,8 +8,7 @@ streamlit = "*"
 openai = "*"
 chromadb = "*"
 langchain-text-splitters = "*"
-requests = "*"
-beautifulsoup4 = "*"
+pypdf = "*"
 
 [dev-packages]
 
