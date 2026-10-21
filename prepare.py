@@ -40,7 +40,7 @@ chapter_text = "\n".join(
 
 # Remove repeated publisher branding and URL text that is not useful in the
 # cleaned chapter content.
-to_remove = ["Saylor URL: http://www.saylor.org/books", "Saylor.org"]
+to_remove = ["Saylor URL: http://www.saylor.org/books", "Saylor.org", "and sources of income."]
 for word in to_remove:
     chapter_text = chapter_text.replace(word, "\n")
 
@@ -86,6 +86,12 @@ for marker in exercises_end_markers:
 # surrounding chapter text intact.
 pattern = r"(?m)^Figure\s+\d+(?:\.\d+)?[^\n]*"
 chapter_text = re.sub(pattern, "", chapter_text)
+
+
+# Replace runs of spaces or tabs with one space.
+chapter_text = re.sub(r"[ \t]+", " ", chapter_text)
+# Replace runs of newlines with one newline.
+chapter_text = re.sub(r"\n+", "\n", chapter_text)
 
 # Print the cleaned Chapter 1 text for inspection or use in the next stage.
 print(chapter_text)
