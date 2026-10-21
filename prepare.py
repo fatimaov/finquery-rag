@@ -308,3 +308,7 @@ def prepare_chapter():
     chapter_text = normalize_paragraphs(chapter_text)
 
     return chapter_text
+
+
+if __name__ == "__main__":
+    print(prepare_chapter())
