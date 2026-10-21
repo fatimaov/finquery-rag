@@ -20,9 +20,11 @@ Refer to the source document for its attribution and reuse terms.
 
 ## Project Structure
 
-- `prepare.py`: Run separately whenever you want to populate or update the vector database.
-- `rag.py`: Retrieve relevant chunks from the existing ChromaDB collection and send them to LM Studio.
-- `app.py`: Display a question input and the generated answer using Streamlit.
+- `prepare.py`: Load the PDF, clean its content, and structure the text as Markdown.
+- `chunk.py`: Split the prepared Markdown into chunks and preserve chapter and section metadata.
+- `ingest.py`: Generate embeddings and store the chunks in the persistent ChromaDB collection `financial_documents`.
+- `rag.py`: Retrieve relevant chunks from ChromaDB, build the context-aware prompt, and generate an answer using the local LLM through LM Studio.
+- `app.py`: Provide a simple Streamlit interface for submitting questions and displaying generated answers.
 
 ## Setup and Usage
 
