@@ -39,14 +39,10 @@ chapter_text = "\n".join(
 
 # Remove repeated publisher branding and URL text that is not useful in the
 # cleaned chapter content.
-chapter_text = chapter_text.replace(
-    "Saylor URL: http://www.saylor.org/books",
-    ""
-)
-chapter_text = chapter_text.replace(
-    "Saylor.org",
-    ""
-)
+to_remove = ["Saylor URL: http://www.saylor.org/books", "Saylor.org"]
+for word in to_remove:
+    chapter_text = chapter_text.replace(word, "\n")
+
 
 objective_end_markers = [
     "The circumstances or characteristics of your life",
