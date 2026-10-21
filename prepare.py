@@ -90,6 +90,34 @@ for marker in exercises_end_markers:
 pattern = r"(?m)^Figure\s+\d+(?:\.\d+)?[^\n]*"
 chapter_text = re.sub(pattern, "", chapter_text)
 
+# Join standalone PDF bullet markers to their text and use Markdown list syntax.
+def format_bullet(match):
+    marker_indent, text_indent = match.groups()
+    return f"{marker_indent}- {text_indent or ''}"
+
+
+chapter_text = re.sub(
+    r"(?m)^([ \t]*)•[ \t]*\r?\n([ \t]*)?(?=\S)",
+    format_bullet,
+    chapter_text,
+)
+
+
+def format_nested_bullet(match):
+    marker_indent, text_indent = match.groups()
+    indent = marker_indent or "  "
+    return f"{indent}- {text_indent or ''}"
+
+
+chapter_text = re.sub(
+    r"(?m)^([ \t]*)o[ \t]*\r?\n([ \t]*)?(?=\S)",
+    format_nested_bullet,
+    chapter_text,
+)
+
+# Convert any bullet markers that extraction already kept on the text line.
+chapter_text = re.sub(r"(?m)^([ \t]*)•[ \t]*", r"\1- ", chapter_text)
+
 
 # Replace runs of spaces or tabs with one space.
 chapter_text = re.sub(r"[ \t]+", " ", chapter_text)
