@@ -38,6 +38,9 @@ chapter_text = "\n".join(
     for i in range(chapter_1_start - 1, chapter_2_start - 1)
 )
 
+# Remove page numbers that appear alone on a line
+chapter_text = re.sub(r"(?m)^[ \t]*\d+[ \t]*$", "", chapter_text)
+
 # Remove repeated publisher branding and URL text that is not useful in the
 # cleaned chapter content.
 to_remove = ["Saylor URL: http://www.saylor.org/books", "Saylor.org", "and sources of income."]
