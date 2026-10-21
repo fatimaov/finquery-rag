@@ -47,6 +47,30 @@ to_remove = ["Saylor URL: http://www.saylor.org/books", "Saylor.org", "and sourc
 for word in to_remove:
     chapter_text = chapter_text.replace(word, "\n")
 
+# Keep the chapter title before the cleanup below removes its objectives block.
+chapter_heading_match = re.search(
+    r"(?im)^[ \t]*(?P<chapter_number>Chapter 1)"
+    r"(?:[ \t]+(?P<same_line_title>[^\r\n]+)"
+    r"|[ \t]*\r?\n[ \t]*(?P<next_line_title>(?!LEARNING OBJECTIVES\b)[^\r\n]+))?",
+    chapter_text,
+)
+chapter_heading_text = ""
+if chapter_heading_match:
+    chapter_name = (
+        chapter_heading_match.group("same_line_title")
+        or chapter_heading_match.group("next_line_title")
+    )
+    chapter_heading_text = " ".join(
+        part.strip()
+        for part in (chapter_heading_match.group("chapter_number"), chapter_name)
+        if part
+    )
+    chapter_text = (
+        chapter_text[:chapter_heading_match.start()]
+        + chapter_heading_text
+        + chapter_text[chapter_heading_match.end():]
+    )
+
 
 objective_end_markers = [
     "The circumstances or characteristics of your life",
@@ -123,6 +147,78 @@ chapter_text = re.sub(r"(?m)^([ \t]*)•[ \t]*", r"\1- ", chapter_text)
 chapter_text = re.sub(r"[ \t]+", " ", chapter_text)
 # Replace runs of newlines with one newline.
 chapter_text = re.sub(r"\n+", "\n", chapter_text)
+
+# Mark chapter and section titles using the PDF bookmark hierarchy.
+chapter_1_index = next(
+    index for index, (level, title, page) in enumerate(toc)
+    if title == "Chapter 1"
+)
+chapter_1_level = toc[chapter_1_index][0]
+chapter_headings = [
+    (level, title)
+    for level, title, page in toc
+    if chapter_1_start <= page < chapter_2_start
+]
+
+search_from = 0
+for level, title in chapter_headings:
+    title_words = title.split()
+    title_pattern = r"\s+".join(re.escape(word) for word in title_words)
+
+    # Section titles in the extracted text may include a numeric prefix that
+    # the corresponding bookmark omits. Chapter bookmarks may also precede
+    # the full chapter title on the same line.
+    number_prefix = r"(?:\d+(?:\.\d+)*[.:]?\s+)?"
+    if re.fullmatch(r"Chapter\s+\d+", title, re.IGNORECASE):
+        heading_pattern = (
+            rf"^[ \t]*(?P<chapter_number>{title_pattern})"
+            rf"(?:[ \t]+(?P<same_line_title>[^\r\n]+)"
+            rf"|[ \t]*\r?\n[ \t]*(?P<next_line_title>(?!LEARNING OBJECTIVES\b)[^\r\n]+))?"
+        )
+    else:
+        heading_pattern = (
+            rf"^[ \t]*(?P<heading>{number_prefix}{title_pattern})[ \t]*$"
+        )
+
+    match = re.search(
+        heading_pattern,
+        chapter_text[search_from:],
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    if match is None:
+        continue
+
+    start = search_from + match.start()
+    end = search_from + match.end()
+    is_chapter_heading = bool(re.fullmatch(r"Chapter\s+\d+", title, re.IGNORECASE))
+    markdown_level = (
+        1
+        if is_chapter_heading
+        else max(2, level - chapter_1_level + 1)
+    )
+    if is_chapter_heading:
+        chapter_name = match.group("same_line_title") or match.group("next_line_title")
+        heading_text = " ".join(
+            part.strip()
+            for part in (match.group("chapter_number"), chapter_name)
+            if part
+        )
+    else:
+        heading_text = re.sub(r"\s+", " ", match.group("heading")).strip()
+    markdown_heading = f"{'#' * markdown_level} {heading_text}"
+    chapter_text = chapter_text[:start] + markdown_heading + chapter_text[end:]
+    search_from = start + len(markdown_heading)
+
+# If cleanup or extraction left adjacent level 1 headings, combine their text.
+while True:
+    chapter_text, merged_count = re.subn(
+        r"(?m)^(# [^\n]+)\n[ \t]*(# [^\n]+)$",
+        lambda match: f"{match.group(1)} {match.group(2)[2:]}",
+        chapter_text,
+        count=1,
+    )
+    if not merged_count:
+        break
 
 # Print the cleaned Chapter 1 text for inspection or use in the next stage.
 print(chapter_text)
