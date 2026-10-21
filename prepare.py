@@ -1,4 +1,4 @@
-from urllib.request import Request, urlopen
+﻿from urllib.request import Request, urlopen
 import pymupdf
 import re
 
@@ -8,7 +8,7 @@ pdf_url = "https://resources.saylor.org/wwwresources/archived/site/textbooks/Per
 # creating an intermediate file.
 request = Request(
     pdf_url,
-    headers={"User-Agent": "Mozilla/5.0"}
+    headers={"User-Agent": "Mozilla/5.0"},
 )
 
 with urlopen(request, timeout=30) as response:
@@ -18,8 +18,6 @@ with urlopen(request, timeout=30) as response:
 # Open the downloaded bytes as a PDF and inspect its page count.
 doc = pymupdf.open(stream=pdf_data, filetype="pdf")
 
-print(f"Total pages: {len(doc)}")
-
 # Use the PDF bookmarks to find where Chapter 2 begins. The fixed starting
 # page skips the book's front matter, so the slice below contains Chapter 1.
 toc = doc.get_toc()
@@ -28,8 +26,6 @@ chapter_2_start = next(
     page for level, title, page in toc
     if title == "Chapter 2"
 )
-
-print(f"Chapter 1: pages {chapter_1_start}-{chapter_2_start - 1}")
 
 # Extract each page in the Chapter 1 page range as text, then join the pages
 # with newlines to preserve readable separation between them.
@@ -43,7 +39,11 @@ chapter_text = re.sub(r"(?m)^[ \t]*\d+[ \t]*$", "", chapter_text)
 
 # Remove repeated publisher branding and URL text that is not useful in the
 # cleaned chapter content.
-to_remove = ["Saylor URL: http://www.saylor.org/books", "Saylor.org", "and sources of income."]
+to_remove = [
+    "Saylor URL: http://www.saylor.org/books",
+    "Saylor.org",
+    "and sources of income.",
+]
 for word in to_remove:
     chapter_text = chapter_text.replace(word, "\n")
 
@@ -75,14 +75,12 @@ if chapter_heading_match:
 objective_end_markers = [
     "The circumstances or characteristics of your life",
     "Financial planning has to take into account conditions",
-    "A financial planning process involves figuring out", 
+    "A financial planning process involves figuring out",
     "Even after reading this book, or perhaps especially",
-  
 ]
 
-# Find the objectives heading and the first listed body-text marker after it.
-# Drop the heading and objectives list while keeping the chapter text from
-# that marker onward.
+# Each marker identifies the first prose line after the objectives list in a
+# different PDF extraction layout. Remove the heading and list up to that line.
 for marker in objective_end_markers:
     start = chapter_text.find("LEARNING OBJECTIVES")
     end = chapter_text.find(marker, start)
@@ -98,9 +96,8 @@ exercises_end_markers = [
     "e.htm)",
 ]
 
-# Find the exercises heading and the first listed subsection marker after it.
-# Drop the exercises heading and material before that subsection, preserving
-# the rest of the chapter text.
+# Each marker identifies where the chapter resumes after the exercises in a
+# different extraction layout. Remove that section while retaining later text.
 for marker in exercises_end_markers:
     start = chapter_text.find("EXERCISES")
     end = chapter_text.find(marker, start)
@@ -120,6 +117,8 @@ def format_bullet(match):
     return f"{marker_indent}- {text_indent or ''}"
 
 
+# Convert the PDF's standalone bullet symbol into a Markdown list marker while
+# carrying over any indentation on the following text line.
 chapter_text = re.sub(
     r"(?m)^([ \t]*)•[ \t]*\r?\n([ \t]*)?(?=\S)",
     format_bullet,
@@ -133,6 +132,8 @@ def format_nested_bullet(match):
     return f"{indent}- {text_indent or ''}"
 
 
+# Preserve nested list indentation when the PDF uses a standalone letter o as
+# its sub-item marker.
 chapter_text = re.sub(
     r"(?m)^([ \t]*)o[ \t]*\r?\n([ \t]*)?(?=\S)",
     format_nested_bullet,
@@ -156,6 +157,8 @@ chapter_1_index = next(
     if title == "Chapter 1"
 )
 chapter_1_level = toc[chapter_1_index][0]
+# Keep only bookmarks whose pages fall within Chapter 1; their order in the
+# table of contents is also the order used to search for headings in the text.
 chapter_headings = [
     (level, title)
     for level, title, page in toc
@@ -182,6 +185,8 @@ for level, title in chapter_headings:
             rf"^[ \t]*(?P<heading>{number_prefix}{title_pattern})[ \t]*$"
         )
 
+    # Search after the last matched heading so repeated title text elsewhere
+    # in the chapter is less likely to be mistaken for a bookmark heading.
     match = re.search(
         heading_pattern,
         chapter_text[search_from:],
@@ -240,6 +245,8 @@ def normalize_paragraphs(text):
             list_items.clear()
 
     def is_list_item(line):
+        # Recognize both Markdown bullets and numbered items when deciding
+        # whether a blank line separates one list from the next paragraph.
         return re.match(r"^[ \t]*(?:-[ \t]+|\d+[.)][ \t]+)", line) is not None
 
     lines = text.splitlines()
@@ -247,7 +254,8 @@ def normalize_paragraphs(text):
         stripped = raw_line.strip()
         if not stripped:
             # Blank lines from page breaks do not end a paragraph unless the
-            # preceding prose line ends in a period.
+            # preceding prose line ends in a period. A list stays open across
+            # blank lines when another list item follows.
             if paragraph_lines and re.search(r"\.$", paragraph_lines[-1]):
                 flush_paragraph()
             if list_items:
@@ -272,6 +280,8 @@ def normalize_paragraphs(text):
             raw_line,
         )
         if list_item:
+            # Keep nested bullet indentation and normalize spacing within each
+            # item's text before adding it to the current list block.
             flush_paragraph()
             indent = "  " if list_item.group(1) else ""
             item_text = re.sub(r"[ \t]+", " ", list_item.group("text").strip())
