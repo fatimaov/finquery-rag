@@ -246,7 +246,10 @@ def normalize_paragraphs(text):
     for index, raw_line in enumerate(lines):
         stripped = raw_line.strip()
         if not stripped:
-            flush_paragraph()
+            # Blank lines from page breaks do not end a paragraph unless the
+            # preceding prose line ends in a period.
+            if paragraph_lines and re.search(r"\.$", paragraph_lines[-1]):
+                flush_paragraph()
             if list_items:
                 next_line = next(
                     (line for line in lines[index + 1:] if line.strip()),
@@ -279,6 +282,10 @@ def normalize_paragraphs(text):
             list_items[-1] += f" {line}"
         else:
             paragraph_lines.append(line)
+            # In the extracted prose, a physical line ending with a period
+            # marks the paragraph end. Wrapped lines continue until then.
+            if re.search(r"\.$", line):
+                flush_paragraph()
 
     flush_paragraph()
     flush_list()
