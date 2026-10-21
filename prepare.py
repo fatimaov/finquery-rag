@@ -1,5 +1,6 @@
 from urllib.request import Request, urlopen
 import pymupdf
+import re
 
 pdf_url = "https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf"
 
@@ -79,6 +80,12 @@ for marker in exercises_end_markers:
 
     if start != -1 and end != -1:
         chapter_text = chapter_text[:start] + chapter_text[end:]
+
+
+# Remove figure caption lines such as "Figure 1.2 ..." while leaving the
+# surrounding chapter text intact.
+pattern = r"(?m)^Figure\s+\d+(?:\.\d+)?[^\n]*"
+chapter_text = re.sub(pattern, "", chapter_text)
 
 # Print the cleaned Chapter 1 text for inspection or use in the next stage.
 print(chapter_text)
