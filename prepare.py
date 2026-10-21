@@ -139,14 +139,16 @@ chapter_text = re.sub(
     chapter_text,
 )
 
+# Join numbered list markers that PDF extraction placed on a separate line.
+chapter_text = re.sub(
+    r"(?m)^([ \t]*)(\d+[.)])[ \t]*\r?\n([ \t]*)(?=\S)",
+    r"\1\2 \3",
+    chapter_text,
+)
+
 # Convert any bullet markers that extraction already kept on the text line.
 chapter_text = re.sub(r"(?m)^([ \t]*)•[ \t]*", r"\1- ", chapter_text)
 
-
-# Replace runs of spaces or tabs with one space.
-chapter_text = re.sub(r"[ \t]+", " ", chapter_text)
-# Replace runs of newlines with one newline.
-chapter_text = re.sub(r"\n+", "\n", chapter_text)
 
 # Mark chapter and section titles using the PDF bookmark hierarchy.
 chapter_1_index = next(
@@ -219,6 +221,71 @@ while True:
     )
     if not merged_count:
         break
+
+
+def normalize_paragraphs(text):
+    """Collapse PDF line wraps while keeping paragraphs, headings, and lists."""
+    blocks = []
+    paragraph_lines = []
+    list_items = []
+
+    def flush_paragraph():
+        if paragraph_lines:
+            blocks.append(" ".join(paragraph_lines))
+            paragraph_lines.clear()
+
+    def flush_list():
+        if list_items:
+            blocks.append("\n".join(list_items))
+            list_items.clear()
+
+    def is_list_item(line):
+        return re.match(r"^[ \t]*(?:-[ \t]+|\d+[.)][ \t]+)", line) is not None
+
+    lines = text.splitlines()
+    for index, raw_line in enumerate(lines):
+        stripped = raw_line.strip()
+        if not stripped:
+            flush_paragraph()
+            if list_items:
+                next_line = next(
+                    (line for line in lines[index + 1:] if line.strip()),
+                    "",
+                )
+                if not is_list_item(next_line):
+                    flush_list()
+            continue
+
+        line = re.sub(r"[ \t]+", " ", stripped)
+
+        if line.startswith("#"):
+            flush_paragraph()
+            flush_list()
+            blocks.append(line)
+            continue
+
+        list_item = re.match(
+            r"^([ \t]*)(?P<marker>-|\d+[.)])[ \t]+(?P<text>.*)$",
+            raw_line,
+        )
+        if list_item:
+            flush_paragraph()
+            indent = "  " if list_item.group(1) else ""
+            item_text = re.sub(r"[ \t]+", " ", list_item.group("text").strip())
+            list_items.append(f"{indent}{list_item.group('marker')} {item_text}")
+            continue
+
+        if list_items:
+            list_items[-1] += f" {line}"
+        else:
+            paragraph_lines.append(line)
+
+    flush_paragraph()
+    flush_list()
+    return "\n\n".join(block for block in blocks if block).strip()
+
+
+chapter_text = normalize_paragraphs(chapter_text)
 
 # Print the cleaned Chapter 1 text for inspection or use in the next stage.
 print(chapter_text)
