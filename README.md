@@ -39,10 +39,10 @@ pipenv install
 
 ### Prepare the vector database
 
-Run the preparation script when you first create the database or need to refresh its contents:
+Run the ingestion script to prepare Chapter 1, create its chunks, and store them in ChromaDB:
 
 ```bash
-pipenv run python prepare.py
+pipenv run python ingest.py
 ```
 
 ### Start the app
