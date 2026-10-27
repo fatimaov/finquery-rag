@@ -3,311 +3,244 @@ import pymupdf
 import re
 
 
-def prepare_chapter():
-    """Load, extract, and clean Chapter 1 from the source PDF."""
-    pdf_url = "https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf"
+def normalize_paragraphs(text):
+    """Join wrapped PDF lines while preserving headings and list items."""
+    # Accumulate paragraphs and lists separately so PDF line wraps can be
+    # joined without flattening Markdown headings or list structure.
+    blocks = []
+    paragraph_lines = []
+    list_items = []
 
-    # Download the source PDF into memory so it can be opened directly without
-    # creating an intermediate file.
-    request = Request(
-        pdf_url,
-        headers={"User-Agent": "Mozilla/5.0"},
-    )
+    def flush_paragraph():
+        # A paragraph is stored as one line, then separated from other blocks.
+        if paragraph_lines:
+            blocks.append(" ".join(paragraph_lines))
+            paragraph_lines.clear()
 
-    with urlopen(request, timeout=30) as response:
-        pdf_data = response.read()
+    def flush_list():
+        # Keep list items on separate lines for Markdown rendering.
+        if list_items:
+            blocks.append("\n".join(list_items))
+            list_items.clear()
+
+    def is_list_item(line):
+        # Recognize the list markers produced by the cleanup below.
+        return re.match(r"^[ \t]*(?:-[ \t]+|\d+[.)][ \t]+)", line) is not None
+
+    lines = text.splitlines()
+    for index, raw_line in enumerate(lines):
+        stripped = raw_line.strip()
+        if not stripped:
+            # Blank PDF lines end completed prose and lists when the next
+            # nonblank line is not another list item.
+            if paragraph_lines and re.search(r"[.!?]$", paragraph_lines[-1]):
+                flush_paragraph()
+            if list_items:
+                next_line = next(
+                    (line for line in lines[index + 1:] if line.strip()),
+                    "",
+                )
+                if not is_list_item(next_line):
+                    flush_list()
+            continue
+
+        line = re.sub(r"[ \t]+", " ", stripped)
+        if line.startswith("#"):
+            # Preserve existing Markdown headings as standalone blocks.
+            flush_paragraph()
+            flush_list()
+            blocks.append(line)
+            continue
+
+        list_item = re.match(
+            r"^([ \t]*)(?P<marker>-|\d+[.)])[ \t]+(?P<text>.*)$",
+            raw_line,
+        )
+        if list_item:
+            # Start a new list item, keeping nested items indented.
+            flush_paragraph()
+            indent = "  " if list_item.group(1) else ""
+            item_text = re.sub(r"[ \t]+", " ", list_item.group("text").strip())
+            list_items.append(f"{indent}{list_item.group('marker')} {item_text}")
+            continue
+
+        if list_items:
+            # Wrapped lines belonging to a list item continue its text.
+            list_items[-1] += f" {line}"
+        else:
+            # Join ordinary wrapped lines until punctuation ends a sentence.
+            paragraph_lines.append(line)
+            if re.search(r"[.!?]$", line):
+                flush_paragraph()
+
+    flush_paragraph()
+    flush_list()
+    return "\n\n".join(block for block in blocks if block).strip()
 
 
-    # Open the downloaded bytes as a PDF and inspect its page count.
-    doc = pymupdf.open(stream=pdf_data, filetype="pdf")
-
-    # Use the PDF bookmarks to find where Chapter 2 begins. The fixed starting
-    # page skips the book's front matter, so the slice below contains Chapter 1.
-    toc = doc.get_toc()
-    chapter_1_start = 6
-    chapter_2_start = next(
-        page for level, title, page in toc
-        if title == "Chapter 2"
-    )
-
-    # Extract each page in the Chapter 1 page range as text, then join the pages
-    # with newlines to preserve readable separation between them.
-    chapter_text = "\n".join(
-        doc[i].get_text("text")
-        for i in range(chapter_1_start - 1, chapter_2_start - 1)
-    )
-
-    # Remove page numbers that appear alone on a line
+def format_chapter(chapter_text, chapter_number, toc, chapter_start, chapter_end):
+    """Clean extracted text and format chapter and section headings."""
+    # Remove page-number-only lines inserted by PDF extraction.
     chapter_text = re.sub(r"(?m)^[ \t]*\d+[ \t]*$", "", chapter_text)
 
-    # Remove repeated publisher branding and URL text that is not useful in the
-    # cleaned chapter content.
-    to_remove = [
+    # Strip repeated publisher branding from page headers and footers.
+    for branding in (
         "Saylor URL: http://www.saylor.org/books",
         "Saylor.org",
-        "and sources of income.",
-    ]
-    for word in to_remove:
-        chapter_text = chapter_text.replace(word, "\n")
+    ):
+        chapter_text = chapter_text.replace(branding, "")
 
-    # Keep the chapter title before the cleanup below removes its objectives block.
-    chapter_heading_match = re.search(
-        r"(?im)^[ \t]*(?P<chapter_number>Chapter 1)"
-        r"(?:[ \t]+(?P<same_line_title>[^\r\n]+)"
-        r"|[ \t]*\r?\n[ \t]*(?P<next_line_title>(?!LEARNING OBJECTIVES\b)[^\r\n]+))?",
-        chapter_text,
-    )
-    chapter_heading_text = ""
-    if chapter_heading_match:
-        chapter_name = (
-            chapter_heading_match.group("same_line_title")
-            or chapter_heading_match.group("next_line_title")
-        )
-        chapter_heading_text = " ".join(
-            part.strip()
-            for part in (chapter_heading_match.group("chapter_number"), chapter_name)
-            if part
-        )
-        chapter_text = (
-            chapter_text[:chapter_heading_match.start()]
-            + chapter_heading_text
-            + chapter_text[chapter_heading_match.end():]
-        )
+    # Drop figure caption lines so they do not interrupt the chapter prose.
+    chapter_text = re.sub(r"(?m)^Figure\s+\d+(?:\.\d+)?[^\n]*", "", chapter_text)
 
-
-    objective_end_markers = [
-        "The circumstances or characteristics of your life",
-        "Financial planning has to take into account conditions",
-        "A financial planning process involves figuring out",
-        "Even after reading this book, or perhaps especially",
-    ]
-
-    # Each marker identifies the first prose line after the objectives list in a
-    # different PDF extraction layout. Remove the heading and list up to that line.
-    for marker in objective_end_markers:
-        start = chapter_text.find("LEARNING OBJECTIVES")
-        end = chapter_text.find(marker, start)
-
-        if start != -1 and end != -1:
-            chapter_text = chapter_text[:start] + chapter_text[end:]
-
-
-    exercises_end_markers = [
-        "1.2 Systemic or “Macro” Factors",
-        "1.3 The Planning Process",
-        "1.4 Financial Planning Professionals",
-        "e.htm)",
-    ]
-
-    # Each marker identifies where the chapter resumes after the exercises in a
-    # different extraction layout. Remove that section while retaining later text.
-    for marker in exercises_end_markers:
-        start = chapter_text.find("EXERCISES")
-        end = chapter_text.find(marker, start)
-
-        if start != -1 and end != -1:
-            chapter_text = chapter_text[:start] + chapter_text[end:]
-
-
-    # Remove figure caption lines such as "Figure 1.2 ..." while leaving the
-    # surrounding chapter text intact.
-    pattern = r"(?m)^Figure\s+\d+(?:\.\d+)?[^\n]*"
-    chapter_text = re.sub(pattern, "", chapter_text)
-
-    # Join standalone PDF bullet markers to their text and use Markdown list syntax.
-    def format_bullet(match):
-        marker_indent, text_indent = match.groups()
-        return f"{marker_indent}- {text_indent or ''}"
-
-
-    # Convert the PDF's standalone bullet symbol into a Markdown list marker while
-    # carrying over any indentation on the following text line.
+    # PDF extraction can put a list marker on its own line; attach it to the
+    # following item text and convert bullets into Markdown list markers.
     chapter_text = re.sub(
-        r"(?m)^([ \t]*)•[ \t]*\r?\n([ \t]*)?(?=\S)",
-        format_bullet,
+        r"(?m)^([ \t]*)\u2022[ \t]*\r?\n([ \t]*)?(?=\S)",
+        lambda match: f"{match.group(1)}- {match.group(2) or ''}",
         chapter_text,
     )
-
-
-    def format_nested_bullet(match):
-        marker_indent, text_indent = match.groups()
-        indent = marker_indent or "  "
-        return f"{indent}- {text_indent or ''}"
-
-
-    # Preserve nested list indentation when the PDF uses a standalone letter o as
-    # its sub-item marker.
     chapter_text = re.sub(
         r"(?m)^([ \t]*)o[ \t]*\r?\n([ \t]*)?(?=\S)",
-        format_nested_bullet,
+        lambda match: f"{match.group(1) or '  '}- {match.group(2) or ''}",
         chapter_text,
     )
-
-    # Join numbered list markers that PDF extraction placed on a separate line.
     chapter_text = re.sub(
         r"(?m)^([ \t]*)(\d+[.)])[ \t]*\r?\n([ \t]*)(?=\S)",
         r"\1\2 \3",
         chapter_text,
     )
-
-    # Convert any bullet markers that extraction already kept on the text line.
-    chapter_text = re.sub(r"(?m)^([ \t]*)•[ \t]*", r"\1- ", chapter_text)
+    chapter_text = re.sub(r"(?m)^([ \t]*)\u2022[ \t]*", r"\1- ", chapter_text)
 
 
-    # Mark chapter and section titles using the PDF bookmark hierarchy.
-    chapter_1_index = next(
-        index for index, (level, title, page) in enumerate(toc)
-        if title == "Chapter 1"
+    # Combine the chapter number and its title, whether the title is on the
+    # same line or the following line. Do not mistake the objectives heading
+    # for the chapter title.
+    chapter_heading = re.compile(
+        rf"^[ \t]*(?P<number>Chapter\s+{chapter_number})"
+        r"(?:[ \t]+(?P<same_line>\S[^\r\n]*)"
+        r"|[ \t]*\r?\n[ \t]*(?P<next_line>(?!LEARNING OBJECTIVES\b)[^\r\n]+))?",
+        re.IGNORECASE | re.MULTILINE,
     )
-    chapter_1_level = toc[chapter_1_index][0]
-    # Keep only bookmarks whose pages fall within Chapter 1; their order in the
-    # table of contents is also the order used to search for headings in the text.
-    chapter_headings = [
-        (level, title)
-        for level, title, page in toc
-        if chapter_1_start <= page < chapter_2_start
-    ]
+    match = chapter_heading.search(chapter_text)
 
-    search_from = 0
-    for level, title in chapter_headings:
-        title_words = title.split()
-        title_pattern = r"\s+".join(re.escape(word) for word in title_words)
+    if match:
+        chapter_name = match.group("same_line") or match.group("next_line")
+        heading = " ".join(
+            part.strip() for part in (match.group("number"), chapter_name) if part
+        )
+        # Replace the original heading lines with a single Markdown H1.
+        chapter_text = (
+            chapter_text[:match.start()]
+            + f"# {heading}"
+            + chapter_text[match.end():]
+        )
 
-        # Section titles in the extracted text may include a numeric prefix that
-        # the corresponding bookmark omits. Chapter bookmarks may also precede
-        # the full chapter title on the same line.
-        number_prefix = r"(?:\d+(?:\.\d+)*[.:]?\s+)?"
-        if re.fullmatch(r"Chapter\s+\d+", title, re.IGNORECASE):
-            heading_pattern = (
-                rf"^[ \t]*(?P<chapter_number>{title_pattern})"
-                rf"(?:[ \t]+(?P<same_line_title>[^\r\n]+)"
-                rf"|[ \t]*\r?\n[ \t]*(?P<next_line_title>(?!LEARNING OBJECTIVES\b)[^\r\n]+))?"
+    # Find the chapter's TOC entry to determine the relative heading levels.
+    chapter_index = next(
+        (
+            index for index, (level, title, page) in enumerate(toc)
+            if re.match(rf"Chapter\s+{chapter_number}\b", title, re.IGNORECASE)
+        ),
+        None,
+    )
+    
+    if chapter_index is not None:
+        chapter_level = toc[chapter_index][0]
+        chapter_headings = [
+            (level, title)
+            for level, title, page in toc
+            if chapter_start <= page < chapter_end
+        ]
+        
+        # Match TOC section titles in order within this chapter's page range.
+        search_from = 0
+        for level, title in chapter_headings:
+            title_words = title.split()
+            title_pattern = r"\s+".join(re.escape(word) for word in title_words)
+            is_chapter_heading = bool(
+                re.match(rf"Chapter\s+{chapter_number}\b", title, re.IGNORECASE)
             )
-        else:
+            if is_chapter_heading:
+                continue
+
+            number_prefix = r"(?:\d+(?:\.\d+)*[.:]?\s+)?"
             heading_pattern = (
                 rf"^[ \t]*(?P<heading>{number_prefix}{title_pattern})[ \t]*$"
             )
-
-        # Search after the last matched heading so repeated title text elsewhere
-        # in the chapter is less likely to be mistaken for a bookmark heading.
-        match = re.search(
-            heading_pattern,
-            chapter_text[search_from:],
-            flags=re.IGNORECASE | re.MULTILINE,
-        )
-        if match is None:
-            continue
-
-        start = search_from + match.start()
-        end = search_from + match.end()
-        is_chapter_heading = bool(re.fullmatch(r"Chapter\s+\d+", title, re.IGNORECASE))
-        markdown_level = (
-            1
-            if is_chapter_heading
-            else max(2, level - chapter_1_level + 1)
-        )
-        if is_chapter_heading:
-            chapter_name = match.group("same_line_title") or match.group("next_line_title")
-            heading_text = " ".join(
-                part.strip()
-                for part in (match.group("chapter_number"), chapter_name)
-                if part
+            heading_match = re.search(
+                heading_pattern,
+                chapter_text[search_from:],
+                flags=re.IGNORECASE | re.MULTILINE,
             )
-        else:
-            heading_text = re.sub(r"\s+", " ", match.group("heading")).strip()
-        markdown_heading = f"{'#' * markdown_level} {heading_text}"
-        chapter_text = chapter_text[:start] + markdown_heading + chapter_text[end:]
-        search_from = start + len(markdown_heading)
+            if heading_match is None:
+                continue
 
-    # If cleanup or extraction left adjacent level 1 headings, combine their text.
-    while True:
-        chapter_text, merged_count = re.subn(
-            r"(?m)^(# [^\n]+)\n[ \t]*(# [^\n]+)$",
-            lambda match: f"{match.group(1)} {match.group(2)[2:]}",
-            chapter_text,
-            count=1,
+            start = search_from + heading_match.start()
+            end = search_from + heading_match.end()
+            markdown_level = max(2, level - chapter_level + 1)
+            heading = re.sub(r"\s+", " ", heading_match.group("heading")).strip()
+            markdown_heading = f"{'#' * markdown_level} {heading}"
+            # Replace each matched section title with its Markdown heading.
+            chapter_text = chapter_text[:start] + markdown_heading + chapter_text[end:]
+            search_from = start + len(markdown_heading)
+
+    # Join wrapped PDF text and apply paragraph/list spacing for Markdown.
+    return normalize_paragraphs(chapter_text)
+
+
+def prepare_chapter():
+    """Load, clean, format, and join the selected chapters from the PDF."""
+    # Download the source PDF with a browser-like user agent.
+    pdf_url = "https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf"
+    request = Request(pdf_url, headers={"User-Agent": "Mozilla/5.0"})
+
+    with urlopen(request, timeout=30) as response:
+        pdf_data = response.read()
+
+    # Open the PDF from memory and read its table of contents for page ranges.
+    doc = pymupdf.open(stream=pdf_data, filetype="pdf")
+    toc = doc.get_toc()
+    # Map each chapter number to its 1-based starting page from the TOC.
+    chapter_pages = {
+        int(chapter_match.group(1)): page
+        for level, title, page in toc
+        if (chapter_match := re.match(r"Chapter\s+(\d+)\b", title))
+    }
+
+    selected_chapters = [1, 2, 3, 5, 7, 8]
+    extracted_chapters = []
+    for chapter_number in selected_chapters:
+        # Use the next chapter's start page as the exclusive end of this one.
+        chapter_start = chapter_pages[chapter_number]
+        next_chapter = next(
+            (number for number in sorted(chapter_pages) if number > chapter_number),
+            None,
         )
-        if not merged_count:
-            break
-
-
-    def normalize_paragraphs(text):
-        """Collapse PDF line wraps while keeping paragraphs, headings, and lists."""
-        blocks = []
-        paragraph_lines = []
-        list_items = []
-
-        def flush_paragraph():
-            if paragraph_lines:
-                blocks.append(" ".join(paragraph_lines))
-                paragraph_lines.clear()
-
-        def flush_list():
-            if list_items:
-                blocks.append("\n".join(list_items))
-                list_items.clear()
-
-        def is_list_item(line):
-            # Recognize both Markdown bullets and numbered items when deciding
-            # whether a blank line separates one list from the next paragraph.
-            return re.match(r"^[ \t]*(?:-[ \t]+|\d+[.)][ \t]+)", line) is not None
-
-        lines = text.splitlines()
-        for index, raw_line in enumerate(lines):
-            stripped = raw_line.strip()
-            if not stripped:
-                # Blank lines from page breaks do not end a paragraph unless the
-                # preceding prose line ends in a period. A list stays open across
-                # blank lines when another list item follows.
-                if paragraph_lines and re.search(r"\.$", paragraph_lines[-1]):
-                    flush_paragraph()
-                if list_items:
-                    next_line = next(
-                        (line for line in lines[index + 1:] if line.strip()),
-                        "",
-                    )
-                    if not is_list_item(next_line):
-                        flush_list()
-                continue
-
-            line = re.sub(r"[ \t]+", " ", stripped)
-
-            if line.startswith("#"):
-                flush_paragraph()
-                flush_list()
-                blocks.append(line)
-                continue
-
-            list_item = re.match(
-                r"^([ \t]*)(?P<marker>-|\d+[.)])[ \t]+(?P<text>.*)$",
-                raw_line,
+        chapter_end = (
+            chapter_pages[next_chapter]
+            if next_chapter is not None
+            else len(doc) + 1
+        )
+        # Extract page text in reading order across the chapter's page range.
+        raw_chapter_text = "\n".join(
+            doc[index].get_text("text")
+            for index in range(chapter_start - 1, chapter_end - 1)
+        )
+        # Clean and format each extracted chapter before combining them.
+        extracted_chapters.append(
+            format_chapter(
+                raw_chapter_text,
+                chapter_number,
+                toc,
+                chapter_start,
+                chapter_end,
             )
-            if list_item:
-                # Keep nested bullet indentation and normalize spacing within each
-                # item's text before adding it to the current list block.
-                flush_paragraph()
-                indent = "  " if list_item.group(1) else ""
-                item_text = re.sub(r"[ \t]+", " ", list_item.group("text").strip())
-                list_items.append(f"{indent}{list_item.group('marker')} {item_text}")
-                continue
-
-            if list_items:
-                list_items[-1] += f" {line}"
-            else:
-                paragraph_lines.append(line)
-                # In the extracted prose, a physical line ending with a period
-                # marks the paragraph end. Wrapped lines continue until then.
-                if re.search(r"\.$", line):
-                    flush_paragraph()
-
-        flush_paragraph()
-        flush_list()
-        return "\n\n".join(block for block in blocks if block).strip()
+        )
 
 
-    chapter_text = normalize_paragraphs(chapter_text)
-
-    return chapter_text
+    # Separate formatted chapters with a blank line for readable Markdown.
+    return "\n\n".join(extracted_chapters)
 
 
 if __name__ == "__main__":
