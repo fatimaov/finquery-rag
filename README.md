@@ -6,7 +6,7 @@ This project is inspired by the **Build a RAG App** lesson from Codecademy's [Re
 
 ## Data Source
 
-The preparation script downloads the [Personal Finance textbook PDF](https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf) from Saylor Academy and extracts Chapter 1. The extracted text is intended as source material for the RAG application.
+The preparation script downloads the [Personal Finance textbook PDF](https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf) from Saylor Academy and extracts Chapters 1, 2, 3, 5, 7, and 8. The extracted text is intended as source material for the RAG application.
 
 Refer to the source document for its attribution and reuse terms.
 
@@ -20,11 +20,10 @@ Refer to the source document for its attribution and reuse terms.
 
 ## Project Structure
 
-- `prepare.py`: Load the PDF, clean its content, and structure the text as Markdown.
-- `chunk.py`: Split the prepared Markdown into chunks and preserve chapter and section metadata.
-- `ingest.py`: Generate embeddings and store the chunks in the persistent ChromaDB collection `financial_documents`.
-- `rag.py`: Retrieve relevant chunks from ChromaDB, build the context-aware prompt, and generate an answer using the local LLM through LM Studio.
-- `app.py`: Provide a simple Streamlit interface for submitting questions and displaying generated answers.
+- `prepare.py`: Download the PDF, clean the selected chapters, and structure the text as Markdown.
+- `chunk.py`: Split the prepared Markdown into 800-character chunks with 100-character overlap, preserving chapter and section metadata.
+- `ingest.py`: Store the chunks in the persistent ChromaDB collection `financial_documents`.
+- `rag.py` and `app.py`: Reserved for the RAG query logic and Streamlit interface; these are not implemented yet.
 
 ## Setup and Usage
 
@@ -39,17 +38,15 @@ pipenv install
 
 ### Prepare the vector database
 
-Run the ingestion script to prepare Chapter 1, create its chunks, and store them in ChromaDB:
+Run the ingestion script to prepare the selected chapters, create their chunks, and store them in ChromaDB:
 
 ```bash
 pipenv run python ingest.py
 ```
 
-### Start the app
+### App status
 
-```bash
-pipenv run start
-```
+The Streamlit interface and RAG query logic are not implemented yet.
 
 ## Purpose
 
