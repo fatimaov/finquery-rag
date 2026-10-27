@@ -78,7 +78,14 @@ def normalize_paragraphs(text):
     return "\n\n".join(block for block in blocks if block).strip()
 
 
-def format_chapter(chapter_text, chapter_number, toc, chapter_start, chapter_end):
+def format_chapter(
+    chapter_text,
+    chapter_number,
+    toc,
+    chapter_start,
+    chapter_end,
+    end_markers=(),
+):
     """Clean extracted text and format chapter and section headings."""
     # Remove page-number-only lines inserted by PDF extraction.
     chapter_text = re.sub(r"(?m)^[ \t]*\d+[ \t]*$", "", chapter_text)
@@ -186,7 +193,57 @@ def format_chapter(chapter_text, chapter_number, toc, chapter_start, chapter_end
             search_from = start + len(markdown_heading)
 
     # Join wrapped PDF text and apply paragraph/list spacing for Markdown.
-    return normalize_paragraphs(chapter_text)
+    chapter_text = normalize_paragraphs(chapter_text)
+
+    # Each configured marker corresponds to one learning objectives section
+    # in this chapter. Remove them in order and keep each marker sentence.
+    search_from = 0
+    for marker in end_markers:
+        objective_heading = re.search(
+            r"(?m)^### LEARNING OBJECTIVES[ \t]*$",
+            chapter_text[search_from:],
+        )
+        if objective_heading is None:
+            break
+
+        start = search_from + objective_heading.start()
+        marker_start = chapter_text.find(
+            marker,
+            search_from + objective_heading.end(),
+        )
+        if marker_start == -1:
+            # This marker has no matching section in this chapter; try the next
+            # configured section marker without changing the chapter text.
+            search_from = search_from + objective_heading.end()
+            continue
+
+        chapter_text = chapter_text[:start] + chapter_text[marker_start:]
+        search_from = start + len(marker)
+
+    # Exercise sections end at the next Markdown heading. Remove each section
+    # through that boundary while preserving the following heading.
+    search_from = 0
+    while True:
+        exercise_heading = re.search(
+            r"(?m)^###[ \t]+EXERCISES?[ \t]*$",
+            chapter_text[search_from:],
+        )
+        if exercise_heading is None:
+            break
+
+        start = search_from + exercise_heading.start()
+        next_heading = chapter_text.find(
+            "\n#",
+            search_from + exercise_heading.end(),
+        )
+        if next_heading == -1:
+            chapter_text = chapter_text[:start].rstrip()
+            break
+
+        chapter_text = chapter_text[:start] + chapter_text[next_heading:]
+        search_from = start
+
+    return chapter_text
 
 
 def prepare_chapter():
@@ -209,6 +266,44 @@ def prepare_chapter():
     }
 
     selected_chapters = [1, 2, 3, 5, 7, 8]
+    # Add the end sentence(s) for each chapter whose learning objectives
+    # should be removed. Leave a chapter's tuple empty to keep its section.
+    learning_objective_end_markers = {
+        1: (
+            "The circumstances or characteristics of your life",
+            "Financial planning has to take into account conditions",
+            "A financial planning process involves figuring out",
+            "Even after reading this book",
+        ),
+        2: (
+            "Personal finance is the process of paying",
+            "As defined earlier in this chapter",
+            "Buying capital",
+            "Personal finance is not just",
+        ),
+        3: (
+            "Clay tablets interested Sumerian",
+            "Financial statements are valuable",
+            "Many software products are available",
+        ),
+        5: (
+            "The budget process is an infinite loop",
+            "Gathering data and creating",
+            "\n## The Cash Budget",
+            "A budget variance occurs",
+            "Whatever type of budget you create",
+        ),
+        7: (
+            "Most people use a checking account",
+            "When incomes are larger than expenses",
+            "“Credit” derives from the Latin",
+            "Debt is long-term credit",
+        ),
+        8: (
+            "Consumer purchases refer",
+            "Many adults will buy a car",
+        ),
+    }
     extracted_chapters = []
     for chapter_number in selected_chapters:
         # Use the next chapter's start page as the exclusive end of this one.
@@ -235,6 +330,7 @@ def prepare_chapter():
                 toc,
                 chapter_start,
                 chapter_end,
+                learning_objective_end_markers.get(chapter_number, ()),
             )
         )
 
