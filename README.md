@@ -20,9 +20,9 @@ Refer to the source document for its attribution and reuse terms.
 
 ## Project Structure
 
-- `prepare.py`: Download the PDF, clean the selected chapters, and structure the text as Markdown.
-- `chunk.py`: Split the prepared Markdown into 800-character chunks with 100-character overlap, preserving chapter and section metadata.
-- `ingest.py`: Store the chunks in the persistent ChromaDB collection `financial_documents`.
+- `prepare.py`: Download the PDF, use its table of contents to find selected chapters, extract and clean their text, and structure headings, paragraphs, and lists as Markdown. This demonstrates PDF text extraction and preprocessing for a RAG pipeline.
+- `chunk.py`: Split the selected chapters into 800-character chunks with 100-character overlap, preserving the Markdown heading hierarchy as metadata.
+- `ingest.py`: Store the chunks in the persistent ChromaDB collection `financial_documents`, removing records that are not part of the current selected-chapter set.
 - `rag.py` and `app.py`: Reserved for the RAG query logic and Streamlit interface; these are not implemented yet.
 
 ## Setup and Usage
@@ -43,6 +43,16 @@ Run the ingestion script to prepare the selected chapters, create their chunks, 
 ```bash
 pipenv run python ingest.py
 ```
+
+### Check retrieval
+
+After ingestion, run a semantic query that requests two matching chunks:
+
+```bash
+pipenv run python -c 'import chromadb; c=chromadb.PersistentClient("./chroma_db").get_collection("financial_documents"); r=c.query(query_texts=["How do I create a budget?"], n_results=2); print("matches:", len(r["ids"][0])); [print("\n", i+1, r["ids"][0][i], r["metadatas"][0][i], "distance:", r["distances"][0][i], "\n", r["documents"][0][i][:350]) for i in range(len(r["ids"][0]))]'
+```
+
+The output should show two matches, including each chunk's heading metadata and a text preview.
 
 ### App status
 

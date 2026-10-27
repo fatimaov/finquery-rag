@@ -1,18 +1,25 @@
-from prepare import prepare_chapter
+from prepare import prepare_selected_chapters
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
 
-def chunk_chapter():
-    """Prepare Chapter 1 and split it into metadata-aware text chunks."""
-    # Prepare the cleaned chapter text before splitting it into smaller sections.
-    chapter_text = prepare_chapter()
+def chunk_selected_chapters():
+    """Prepare the selected chapters and split them into metadata-aware chunks."""
+    # Prepare and format all selected chapters before splitting the Markdown.
+    chapter_text = prepare_selected_chapters()
 
-    # Use the Markdown heading hierarchy to keep chapter, section, and
-    # subsection titles available as metadata on each resulting document.
+    # prepare.py derives heading levels from the PDF table of contents, so
+    # include the full Markdown heading range to retain every title as metadata.
+    metadata_names = [
+        "chapter",
+        "section",
+        "subsection",
+        "subsection_4",
+        "subsection_5",
+        "subsection_6",
+    ]
     headers_to_split_on = [
-        ("#", "chapter"),
-        ("##", "section"),
-        ("###", "subsection"),
+        ("#" * level, metadata_names[level - 1])
+        for level in range(1, len(metadata_names) + 1)
     ]
 
     # Remove headings from section text after recording their values in metadata,
@@ -22,8 +29,8 @@ def chunk_chapter():
         strip_headers=True,
     )
 
-    # Split at the configured heading levels; the splitter attaches the matching
-    # heading path to each section's metadata.
+    # Split at each heading level; the splitter attaches its heading path to
+    # the section metadata, including chapter titles across the whole document.
     sections = markdown_splitter.split_text(chapter_text)
 
     # Break long sections into smaller pieces that fit the target chunk size.
@@ -57,4 +64,4 @@ def print_chunk_debug(chunks):
 
 
 if __name__ == "__main__":
-    print_chunk_debug(chunk_chapter())
+    print_chunk_debug(chunk_selected_chapters())

@@ -246,7 +246,7 @@ def format_chapter(
     return chapter_text
 
 
-def prepare_chapter():
+def prepare_selected_chapters():
     """Load, clean, format, and join the selected chapters from the PDF."""
     # Download the source PDF with a browser-like user agent.
     pdf_url = "https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf"
@@ -340,4 +340,4 @@ def prepare_chapter():
 
 
 if __name__ == "__main__":
-    print(prepare_chapter())
+    print(prepare_selected_chapters())
