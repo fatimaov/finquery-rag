@@ -56,9 +56,10 @@ def build_prompt(question: str, chunks: list[str]) -> str:
 </question>
 """.strip()
 
+
 def generate_answer(prompt: str) -> str:
     """Send the prompt to the configured local model and return its answer."""
-    # Pass the response rules separately from retrieved content and the question.
+    # Pass response rules separately from retrieved content and the question.
     response = llm_client.chat.completions.create(
         model=lm_studio_model,
         messages=[
@@ -75,3 +76,18 @@ def generate_answer(prompt: str) -> str:
 
     # Return an empty string if the completion contains no text.
     return response.choices[0].message.content or ""
+
+
+def answer_question(question: str, top_k: int = 5) -> str:
+    """Run retrieval and generation to answer a user's question."""
+    # Retrieve the top matching documents from the persisted collection.
+    results = retrieve_chunks(question, top_k)
+
+    # ChromaDB groups results by query; use the text for our single query.
+    chunks = results["documents"][0] or []
+
+    # Give the model the question together with the retrieved reference text.
+    prompt = build_prompt(question, chunks)
+
+    # Generate and return the response from the configured LM Studio model.
+    return generate_answer(prompt)
