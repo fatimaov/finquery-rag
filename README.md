@@ -4,6 +4,10 @@ A simple Retrieval-Augmented Generation (RAG) application built with Python and 
 
 This project is inspired by the **Build a RAG App** lesson from Codecademy's [Retrieval-Augmented Generation for AI Applications](https://www.codecademy.com/enrolled/courses/retrieval-augmented-generation-for-ai-applications) course.
 
+## Demo
+
+<img src="demo.gif" alt="finQuery app demo" width="1200">
+
 ## Data Source
 
 The preparation script downloads the [Personal Finance textbook PDF](https://resources.saylor.org/wwwresources/archived/site/textbooks/Personal%20Finance.pdf) from Saylor Academy and extracts Chapters 1, 2, 3, 5, 7, and 8. It formats the extracted content as Markdown, including chapter and section headings. Refer to the source document for its attribution and reuse terms.
