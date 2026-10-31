@@ -16,8 +16,12 @@ lm_studio_model = os.getenv("LM_STUDIO_MODEL")
 if not lm_studio_model:
     raise ValueError("LM_STUDIO_MODEL environment variable must be set.")
 
+lm_studio_api_key = os.getenv("LM_STUDIO_API_KEY")
+if not lm_studio_api_key:
+    raise ValueError("LM_STUDIO_API_KEY environment variable must be set.")
+
 # Use the OpenAI-compatible client to send requests to LM Studio.
-llm_client = OpenAI(base_url=lm_studio_base_url, api_key="lm-studio")
+llm_client = OpenAI(base_url=lm_studio_base_url, api_key=lm_studio_api_key)
 
 # Exclude retrieved chunks whose ChromaDB distance exceeds this cutoff.
 MAX_DISTANCE = 0.8
