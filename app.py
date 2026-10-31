@@ -19,7 +19,8 @@ if st.button("Ask"):
             answer, chunks = answer_question(question, top_k=int(top_k))
 
         st.write(answer)
-        st.divider()
+        if chunks:
+            st.divider()
 
         for index, chunk in enumerate(chunks, start=1):
             preview = chunk[:300].strip()
