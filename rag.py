@@ -78,8 +78,8 @@ def generate_answer(prompt: str) -> str:
     return response.choices[0].message.content or ""
 
 
-def answer_question(question: str, top_k: int = 5) -> str:
-    """Run retrieval and generation to answer a user's question."""
+def answer_question(question: str, top_k: int = 5) -> tuple[str, list[str]]:
+    """Return an answer and the retrieved chunks used to generate it."""
     # Retrieve the top matching documents from the persisted collection.
     results = retrieve_chunks(question, top_k)
 
@@ -90,4 +90,5 @@ def answer_question(question: str, top_k: int = 5) -> str:
     prompt = build_prompt(question, chunks)
 
     # Generate and return the response from the configured LM Studio model.
-    return generate_answer(prompt)
+    answer = generate_answer(prompt)
+    return answer, chunks
