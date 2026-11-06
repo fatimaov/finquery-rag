@@ -1,5 +1,5 @@
 import streamlit as st
-from rag import answer_question
+from rag import answer_baseline
 
 st.title("finQuery")
 st.write("Ask questions about personal finance.")
@@ -16,7 +16,7 @@ top_k = st.number_input(
 if st.button("Ask"):
     if question.strip():
         with st.spinner("Generating answer..."):
-            answer, chunks = answer_question(question, top_k=int(top_k))
+            answer, chunks = answer_baseline(question, top_k=int(top_k))
 
         st.write(answer)
         if chunks:
