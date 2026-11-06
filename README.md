@@ -1,6 +1,6 @@
 # finQuery — RAG Learning Project
 
-A simple Retrieval-Augmented Generation (RAG) application built with Python and Streamlit to practice the fundamentals of a RAG pipeline.
+A Retrieval-Augmented Generation (RAG) application built with Python and Streamlit to practice baseline and advanced retrieval techniques. The baseline pipeline is currently implemented; the other strategy modules are placeholders for future experiments.
 
 This project is inspired by the **Build a RAG App** lesson from Codecademy's [Retrieval-Augmented Generation for AI Applications](https://www.codecademy.com/enrolled/courses/retrieval-augmented-generation-for-ai-applications) course.
 
@@ -26,8 +26,16 @@ The preparation script downloads the [Personal Finance textbook PDF](https://res
 - `prepare.py`: Downloads the PDF, extracts the selected chapters using the table of contents, and cleans and formats their text as Markdown.
 - `chunk.py`: Splits the Markdown by heading and then into 800-character chunks with 100-character overlap, retaining heading metadata.
 - `ingest.py`: Stores chunks in the persistent ChromaDB collection `financial_documents` in `./chroma_db`, replacing obsolete records when the selected chapter set changes.
-- `rag.py`: Retrieves matching chunks from ChromaDB and sends them with the question to the configured LM Studio model.
-- `app.py`: Streamlit interface for questions, retrieval-count selection, answers, and short previews of the retrieved chunks.
+- `app.py`: Streamlit interface for the currently available baseline RAG flow, including retrieval-count selection, answers, and short previews of retrieved chunks.
+- `rag/`: Retrieval pipelines and shared RAG components:
+  - `common.py`: Shared ChromaDB and LM Studio clients, prompt construction, and answer generation.
+  - `baseline.py`: Baseline semantic retrieval and the `answer_baseline()` entry point.
+  - `contextual_rewriting.py`: Placeholder for history-aware query rewriting.
+  - `hyde.py`: Placeholder for Hypothetical Document Embeddings (HyDE).
+  - `multi_query.py`: Placeholder for multi-query retrieval and fusion search.
+  - `__init__.py`: Exposes the implemented pipeline entry points from the `rag` package.
+
+Only the baseline pipeline is currently connected to the Streamlit interface. The experimental pipeline modules have not yet been implemented or added as tabs.
 
 ## Setup and Usage
 
@@ -42,12 +50,13 @@ pipenv install
 
 ### Configure LM Studio
 
-Start LM Studio's local server with a chat model loaded, then set these environment variables to match the server and model:
+Start LM Studio's local server with a chat model loaded, then set the environment variables shown in `.env.example` to match the server and model:
 
 - `LM_STUDIO_BASE_URL`: OpenAI-compatible API base URL, such as `http://localhost:1234/v1`
 - `LM_STUDIO_MODEL`: model identifier accepted by the local server
+- `LM_STUDIO_API_KEY`: API key passed to the OpenAI-compatible client; LM Studio commonly accepts a placeholder such as `lm-studio` for local use.
 
-The OpenAI client uses a placeholder API key because the local LM Studio server does not require an OpenAI key.
+`.env.example` is a template; the app reads these values from the process environment. Set them in your shell or your preferred environment-variable manager before running ingestion or the app. Do not commit real credentials.
 
 ### Prepare the vector database
 
