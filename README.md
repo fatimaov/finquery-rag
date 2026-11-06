@@ -26,7 +26,7 @@ The preparation script downloads the [Personal Finance textbook PDF](https://res
 - `prepare.py`: Downloads the PDF, extracts the selected chapters using the table of contents, and cleans and formats their text as Markdown.
 - `chunk.py`: Splits the Markdown by heading and then into 800-character chunks with 100-character overlap, retaining heading metadata.
 - `ingest.py`: Stores chunks in the persistent ChromaDB collection `financial_documents` in `./chroma_db`, replacing obsolete records when the selected chapter set changes.
-- `app.py`: Streamlit interface for the currently available baseline RAG flow, including retrieval-count selection, answers, and short previews of retrieved chunks.
+- `app.py`: Streamlit interface with tabs for Baseline RAG, Contextual Query Rewriting, HyDE, and Multi-Query + Fusion. The baseline tab is connected; the other tabs are UI placeholders.
 - `rag/`: Retrieval pipelines and shared RAG components:
   - `common.py`: Shared ChromaDB and LM Studio clients, prompt construction, and answer generation.
   - `baseline.py`: Baseline semantic retrieval and the `answer_baseline()` entry point.
@@ -35,7 +35,7 @@ The preparation script downloads the [Personal Finance textbook PDF](https://res
   - `multi_query.py`: Placeholder for multi-query retrieval and fusion search.
   - `__init__.py`: Exposes the implemented pipeline entry points from the `rag` package.
 
-Only the baseline pipeline is currently connected to the Streamlit interface. The experimental pipeline modules have not yet been implemented or added as tabs.
+Only the baseline pipeline is currently connected to the Streamlit interface. The experimental tabs are visible but their retrieval pipelines have not yet been implemented.
 
 ## Setup and Usage
 
