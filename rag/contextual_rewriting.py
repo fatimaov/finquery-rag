@@ -5,11 +5,15 @@ from rag.baseline import retrieve_chunks
 
 
 REWRITE_INSTRUCTIONS = """
-Rewrite the user's latest message as a self-contained question that can be
-understood without seeing the conversation history. Use the history only to
-resolve references and omitted context. Preserve the user's intent and do not
-answer the question. Return only the rewritten question. If the latest message
-is already self-contained, return it unchanged.
+Turn the latest user message into one concise, standalone search query for the
+personal finance textbook. Use recent conversation to identify the ongoing
+topic. If the latest message continues that topic, include the missing subject
+or concept in the query, even if the message is otherwise understandable. Use
+assistant replies only to identify the topic, never to repeat or summarize
+their answer. Follow a clear change of subject. Preserve names, amounts, and
+intent; use precise textbook terms when supported (for example, "expenses exceed
+income" means "budget deficit"). Do not add assumptions or answer the question.
+Return only the query.
 """.strip()
 
 
@@ -28,7 +32,7 @@ def rewrite_question(
     messages.append(
         {
             "role": "user",
-            "content": f"Rewrite this latest message as a self-contained question:\n\n{current_message}",
+            "content": f"Rewrite this latest message as a concise standalone search query:\n\n{current_message}",
         }
     )
 
