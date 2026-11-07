@@ -1,7 +1,12 @@
 """Helpers for contextual query rewriting."""
 
-from rag.common import build_prompt, generate_answer, llm_client, lm_studio_model
-from rag.baseline import retrieve_chunks
+from rag.common import (
+    build_prompt,
+    generate_answer,
+    llm_client,
+    lm_studio_model,
+    retrieve_chunks,
+)
 
 
 REWRITE_INSTRUCTIONS = """

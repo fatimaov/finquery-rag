@@ -1,25 +1,4 @@
-from rag.common import build_prompt, collection, generate_answer
-
-# Exclude retrieved chunks whose ChromaDB distance exceeds this cutoff.
-MAX_DISTANCE = 0.8
-
-
-def retrieve_chunks(question: str, top_k: int = 5) -> list[str]:
-    """Return up to top_k matching chunks that meet the distance cutoff."""
-    # ChromaDB embeds the question and returns up to top_k nearest documents.
-    results = collection.query(
-        query_texts=[question],
-        n_results=top_k,
-    )
-
-    # This query has one result group; pair each document with its distance.
-    documents = results["documents"][0] or []
-    distances = results["distances"][0] or []
-    return [
-        document
-        for document, distance in zip(documents, distances)
-        if distance <= MAX_DISTANCE
-    ]
+from rag.common import build_prompt, generate_answer, retrieve_chunks
 
 
 def answer_baseline(question: str, top_k: int = 5) -> tuple[str, list[str]]:

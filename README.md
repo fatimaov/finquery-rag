@@ -28,9 +28,9 @@ The preparation script downloads the [Personal Finance textbook PDF](https://res
 - `ingest.py`: Stores chunks in the persistent ChromaDB collection `financial_documents` in `./chroma_db`, replacing obsolete records when the selected chapter set changes.
 - `app.py`: Streamlit interface with tabs for Baseline RAG, Contextual Query Rewriting, HyDE, and Multi-Query + Fusion.
 - `rag/`: Retrieval pipelines and shared RAG components:
-  - `common.py`: Shared ChromaDB and LM Studio clients, prompt construction, and answer generation.
-  - `baseline.py`: Baseline semantic retrieval and the `answer_baseline()` entry point.
-  - `contextual_rewriting.py`: Rewrites follow-up questions using chat history, then retrieves chunks and generates an answer.
+  - `common.py`: Shared ChromaDB and LM Studio clients, chunk retrieval, prompt construction, and answer generation.
+  - `baseline.py`: Baseline RAG answer generation using shared retrieval.
+  - `contextual_rewriting.py`: Rewrites follow-up questions using chat history, then uses shared retrieval to generate an answer.
   - `hyde.py`: Placeholder for Hypothetical Document Embeddings (HyDE).
   - `multi_query.py`: Placeholder for multi-query retrieval and fusion search.
   - `__init__.py`: Exposes the implemented pipeline entry points from the `rag` package.
