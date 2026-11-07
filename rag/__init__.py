@@ -2,11 +2,12 @@
 
 from .baseline import answer_baseline
 from .contextual_rewriting import answer_contextual_rewriting, rewrite_question
-from .hyde import answer_with_hyde
+from .hyde import answer_with_hyde, generate_hypothetical_answer
 
 __all__ = [
     "answer_baseline",
     "answer_contextual_rewriting",
     "answer_with_hyde",
+    "generate_hypothetical_answer",
     "rewrite_question",
 ]
