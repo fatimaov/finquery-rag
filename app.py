@@ -60,34 +60,57 @@ with rewriting_tab:
     if "rewriting_messages" not in st.session_state:
         st.session_state["rewriting_messages"] = []
 
-    # Render the saved conversation.
-    for message in st.session_state["rewriting_messages"]:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-
-    # Collect a new message. Pipeline processing will be added in a later step.
-    user_message = st.chat_input(
+    # Keep the input anchored at the viewport bottom, outside the scroll area.
+    user_message = st.bottom.chat_input(
         "Ask a question", key="rewriting_chat_input"
     )
 
-    if user_message:
-        history = st.session_state["rewriting_messages"]
-        if history:
-            rewritten_question = rewrite_question(
-                history=history,
-                current_message=user_message,
-            )
-        else:
-            rewritten_question = user_message
-        st.caption(f"Rewritten question: {rewritten_question}")
+    # Bound the conversation height so it scrolls independently of the page.
+    with st.container(height=450, border=False):
+        # Render saved turns, including the chunks used for each answer.
+        for message in st.session_state["rewriting_messages"]:
+            with st.chat_message(message["role"]):
+                if message["role"] == "assistant" and message.get("rewritten_question"):
+                    st.caption(f"Rewritten question: {message['rewritten_question']}")
+                st.write(message["content"])
+                if message["role"] == "assistant":
+                    show_retrieved_chunks(message.get("chunks", []))
 
-        with st.spinner("Retrieving information and generating an answer..."):
-            answer, chunks = answer_contextual_rewriting(
-                rewritten_question, top_k=int(rewriting_top_k)
+        if user_message:
+            history = st.session_state["rewriting_messages"]
+            if history:
+                rewritten_question = rewrite_question(
+                    history=history,
+                    current_message=user_message,
+                )
+            else:
+                rewritten_question = user_message
+
+            with st.spinner("Retrieving information and generating an answer..."):
+                answer, chunks = answer_contextual_rewriting(
+                    rewritten_question, top_k=int(rewriting_top_k)
+                )
+
+            # Save the original wording for display and future contextual rewrites.
+            st.session_state["rewriting_messages"].append(
+                {"role": "user", "content": user_message}
+            )
+            st.session_state["rewriting_messages"].append(
+                {
+                    "role": "assistant",
+                    "content": answer,
+                    "chunks": chunks,
+                    "rewritten_question": rewritten_question,
+                }
             )
 
-        st.write(answer)
-        show_retrieved_chunks(chunks)
+            # Display the new turn now; saved turns render from session state next rerun.
+            with st.chat_message("user"):
+                st.write(user_message)
+            with st.chat_message("assistant"):
+                st.caption(f"Rewritten question: {rewritten_question}")
+                st.write(answer)
+                show_retrieved_chunks(chunks)
 
 with hyde_tab:
     st.info(
