@@ -19,7 +19,9 @@ baseline_tab, rewriting_tab, hyde_tab, multi_query_tab = st.tabs(
         "Contextual Query Rewriting",
         "HyDE",
         "Multi-Query + Fusion",
-    ]
+    ],
+    on_change="rerun",
+    key="finquery_tabs",
 )
 
 with baseline_tab:
@@ -60,10 +62,12 @@ with rewriting_tab:
     if "rewriting_messages" not in st.session_state:
         st.session_state["rewriting_messages"] = []
 
-    # Keep the input anchored at the viewport bottom, outside the scroll area.
-    user_message = st.bottom.chat_input(
-        "Ask a question", key="rewriting_chat_input"
-    )
+    # Only create the bottom-anchored input while this tab is selected.
+    user_message = None
+    if rewriting_tab.open:
+        user_message = st.bottom.chat_input(
+            "Ask a question", key="rewriting_chat_input"
+        )
 
     # Bound the conversation height so it scrolls independently of the page.
     with st.container(height=450, border=False):
