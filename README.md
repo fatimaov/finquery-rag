@@ -1,6 +1,6 @@
 # finQuery — RAG Learning Project
 
-A Retrieval-Augmented Generation (RAG) application built with Python and Streamlit to practice baseline and advanced retrieval techniques. Baseline RAG and contextual query rewriting are connected; HyDE and Multi-Query + Fusion remain placeholders.
+A Retrieval-Augmented Generation (RAG) learning app built with Python and Streamlit. It demonstrates baseline retrieval, contextual query rewriting, and Hypothetical Document Embeddings (HyDE). Multi-Query + Fusion is a placeholder.
 
 This project is inspired by the **Build a RAG App** lesson from Codecademy's [Retrieval-Augmented Generation for AI Applications](https://www.codecademy.com/enrolled/courses/retrieval-augmented-generation-for-ai-applications) course.
 
@@ -31,7 +31,7 @@ The preparation script downloads the [Personal Finance textbook PDF](https://res
   - `common.py`: Shared ChromaDB and LM Studio clients, chunk retrieval, prompt construction, and answer generation.
   - `baseline.py`: Baseline RAG answer generation using shared retrieval.
   - `contextual_rewriting.py`: Rewrites follow-up questions using chat history, then uses shared retrieval to generate an answer.
-  - `hyde.py`: Placeholder for Hypothetical Document Embeddings (HyDE).
+  - `hyde.py`: Generates a short hypothetical text for retrieval, then answers using matching real chunks.
   - `multi_query.py`: Placeholder for multi-query retrieval and fusion search.
   - `__init__.py`: Exposes the implemented pipeline entry points from the `rag` package.
 
@@ -72,7 +72,7 @@ pipenv run python ingest.py
 pipenv run streamlit run app.py
 ```
 
-In Baseline RAG, enter a question and choose how many chunks to retrieve (1–20; default 5). In Contextual Query Rewriting, submit a message in the chat box; follow-up questions use the earlier turns as context. Both tabs show the answer and list retrieved chunks in an expander. Retrieval excludes chunks whose ChromaDB distance is greater than `0.8`, so fewer chunks than requested may be shown.
+In Baseline RAG, enter a question and choose how many chunks to retrieve (1–20; default 5). In Contextual Query Rewriting, submit a message in the chat box; follow-up questions use earlier turns as context. In HyDE, the app shows the generated hypothetical sentence, searches with it, and uses the original question plus retrieved chunks to generate a grounded answer. These tabs show retrieved chunks in an expander. Retrieval excludes chunks whose ChromaDB distance is greater than `0.8`, so fewer chunks than requested may be shown. If no chunks pass the cutoff, the app displays a fallback message.
 
 ### Check retrieval
 
