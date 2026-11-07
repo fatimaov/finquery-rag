@@ -1,6 +1,12 @@
 """Helpers for Hypothetical Document Embeddings (HyDE)."""
 
-from rag.common import llm_client, lm_studio_model
+from rag.common import (
+    build_prompt,
+    generate_answer,
+    llm_client,
+    lm_studio_model,
+    retrieve_chunks,
+)
 
 
 HYPOTHETICAL_ANSWER_INSTRUCTIONS = """
@@ -23,3 +29,17 @@ def generate_hypothetical_answer(question: str) -> str:
 
     # This text is only a retrieval aid; the final answer will use real chunks.
     return (response.choices[0].message.content or "").strip()
+
+
+def retrieve_hypothetical_chunks(
+    hypothetical_answer: str, top_k: int = 5
+) -> list[str]:
+    """Retrieve real document chunks using the hypothetical answer as the query."""
+    # Shared retrieval applies the collection settings and MAX_DISTANCE cutoff.
+    return retrieve_chunks(hypothetical_answer, top_k)
+
+
+def generate_hyde_answer(question: str, chunks: list[str]) -> str:
+    """Generate a grounded answer using real chunks and the original question."""
+    prompt = build_prompt(question, chunks)
+    return generate_answer(prompt)
