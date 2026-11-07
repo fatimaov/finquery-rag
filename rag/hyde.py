@@ -43,3 +43,20 @@ def generate_hyde_answer(question: str, chunks: list[str]) -> str:
     """Generate a grounded answer using real chunks and the original question."""
     prompt = build_prompt(question, chunks)
     return generate_answer(prompt)
+
+
+def answer_with_hyde(
+    question: str, hypothetical_answer: str, top_k: int = 5
+) -> tuple[str, list[str]]:
+    """Return a grounded answer and its chunks using pre-generated HyDE text."""
+    chunks = retrieve_hypothetical_chunks(hypothetical_answer, top_k)
+
+    # Do not ask the model to answer from an empty context.
+    if not chunks:
+        return (
+            "I couldn't find relevant information in the available documents.",
+            [],
+        )
+
+    answer = generate_hyde_answer(question, chunks)
+    return answer, chunks
