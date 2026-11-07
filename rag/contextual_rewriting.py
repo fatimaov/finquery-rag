@@ -1,6 +1,7 @@
 """Helpers for contextual query rewriting."""
 
-from rag.common import llm_client, lm_studio_model
+from rag.common import build_prompt, generate_answer, llm_client, lm_studio_model
+from rag.baseline import retrieve_chunks
 
 
 REWRITE_INSTRUCTIONS = """
@@ -37,3 +38,15 @@ def rewrite_question(
     )
     
     return (response.choices[0].message.content or "").strip()
+
+
+def answer_contextual_rewriting(
+    question: str, top_k: int = 5
+) -> tuple[str, list[str]]:
+    """Retrieve and answer using the self-contained question."""
+    chunks = retrieve_chunks(question, top_k)
+    if not chunks:
+        return "I couldn't find relevant information in the available documents.", []
+
+    prompt = build_prompt(question, chunks)
+    return generate_answer(prompt), chunks

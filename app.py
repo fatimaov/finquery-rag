@@ -1,7 +1,17 @@
 import streamlit as st
-from rag import answer_baseline, rewrite_question
+from rag import answer_baseline, answer_contextual_rewriting, rewrite_question
 
 st.title("finQuery")
+
+
+def show_retrieved_chunks(chunks: list[str]) -> None:
+    """Display retrieved chunks in a consistent expandable section."""
+    if chunks:
+        with st.expander("Retrieved chunks"):
+            for index, chunk in enumerate(chunks, start=1):
+                st.caption(f"Chunk {index}")
+                st.write(chunk)
+
 
 baseline_tab, rewriting_tab, hyde_tab, multi_query_tab = st.tabs(
     [
@@ -31,23 +41,20 @@ with baseline_tab:
                 answer, chunks = answer_baseline(question, top_k=int(top_k))
 
             st.write(answer)
-            if chunks:
-                st.divider()
-
-            for index, chunk in enumerate(chunks, start=1):
-                preview = chunk[:300].strip()
-                if len(chunk) > 300:
-                    preview += "…"
-                st.caption(f"Chunk {index}")
-                st.markdown(
-                    f'<p style="color: #777">{preview}</p>',
-                    unsafe_allow_html=True,
-                )
+            show_retrieved_chunks(chunks)
         else:
             st.warning("Please enter a question.")
 
 with rewriting_tab:
     st.write("Ask follow-up questions about personal finance.")
+    rewriting_top_k = st.number_input(
+        "Number of chunks to retrieve",
+        min_value=1,
+        max_value=20,
+        value=5,
+        step=1,
+        key="rewriting_top_k",
+    )
 
     # Keep this tab's conversation across Streamlit reruns.
     if "rewriting_messages" not in st.session_state:
@@ -73,6 +80,14 @@ with rewriting_tab:
         else:
             rewritten_question = user_message
         st.caption(f"Rewritten question: {rewritten_question}")
+
+        with st.spinner("Retrieving information and generating an answer..."):
+            answer, chunks = answer_contextual_rewriting(
+                rewritten_question, top_k=int(rewriting_top_k)
+            )
+
+        st.write(answer)
+        show_retrieved_chunks(chunks)
 
 with hyde_tab:
     st.info(
