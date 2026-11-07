@@ -1,5 +1,11 @@
 import streamlit as st
-from rag import answer_baseline, answer_contextual_rewriting, rewrite_question
+from rag import (
+    answer_baseline,
+    answer_contextual_rewriting,
+    answer_with_hyde,
+    generate_hypothetical_answer,
+    rewrite_question,
+)
 
 st.title("finQuery")
 
@@ -117,9 +123,36 @@ with rewriting_tab:
                 show_retrieved_chunks(chunks)
 
 with hyde_tab:
-    st.info(
-        "HyDE (Hypothetical Document Embeddings) is a placeholder. This technique is not implemented yet."
+    st.write("Ask questions about personal finance using hypothetical-answer retrieval.")
+
+    hyde_question = st.text_input("Your question", key="hyde_question")
+    hyde_top_k = st.number_input(
+        "Number of chunks to retrieve",
+        min_value=1,
+        max_value=20,
+        value=5,
+        step=1,
+        key="hyde_top_k",
     )
+
+    if st.button("Ask", key="hyde_ask"):
+        if hyde_question.strip():
+            with st.spinner("Generating hypothetical answer..."):
+                hypothetical_answer = generate_hypothetical_answer(hyde_question)
+
+            st.caption(f"Hypothetical answer used for retrieval: {hypothetical_answer}")
+
+            with st.spinner("Retrieving information and generating an answer..."):
+                answer, chunks = answer_with_hyde(
+                    hyde_question,
+                    hypothetical_answer,
+                    top_k=int(hyde_top_k),
+                )
+
+            st.write(answer)
+            show_retrieved_chunks(chunks)
+        else:
+            st.warning("Please enter a question.")
 
 with multi_query_tab:
     st.info(
