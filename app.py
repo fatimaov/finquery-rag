@@ -1,5 +1,5 @@
 import streamlit as st
-from rag import answer_baseline
+from rag import answer_baseline, rewrite_question
 
 st.title("finQuery")
 
@@ -62,6 +62,17 @@ with rewriting_tab:
     user_message = st.chat_input(
         "Ask a question", key="rewriting_chat_input"
     )
+
+    if user_message:
+        history = st.session_state["rewriting_messages"]
+        if history:
+            rewritten_question = rewrite_question(
+                history=history,
+                current_message=user_message,
+            )
+        else:
+            rewritten_question = user_message
+        st.caption(f"Rewritten question: {rewritten_question}")
 
 with hyde_tab:
     st.info(
