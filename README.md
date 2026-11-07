@@ -1,6 +1,6 @@
 # finQuery — RAG Learning Project
 
-A Retrieval-Augmented Generation (RAG) application built with Python and Streamlit to practice baseline and advanced retrieval techniques. The baseline pipeline is currently implemented; the other strategy modules are placeholders for future experiments.
+A Retrieval-Augmented Generation (RAG) application built with Python and Streamlit to practice baseline and advanced retrieval techniques. Baseline RAG and contextual query rewriting are connected; HyDE and Multi-Query + Fusion remain placeholders.
 
 This project is inspired by the **Build a RAG App** lesson from Codecademy's [Retrieval-Augmented Generation for AI Applications](https://www.codecademy.com/enrolled/courses/retrieval-augmented-generation-for-ai-applications) course.
 
@@ -26,16 +26,16 @@ The preparation script downloads the [Personal Finance textbook PDF](https://res
 - `prepare.py`: Downloads the PDF, extracts the selected chapters using the table of contents, and cleans and formats their text as Markdown.
 - `chunk.py`: Splits the Markdown by heading and then into 800-character chunks with 100-character overlap, retaining heading metadata.
 - `ingest.py`: Stores chunks in the persistent ChromaDB collection `financial_documents` in `./chroma_db`, replacing obsolete records when the selected chapter set changes.
-- `app.py`: Streamlit interface with tabs for Baseline RAG, Contextual Query Rewriting, HyDE, and Multi-Query + Fusion. The baseline tab is connected; the other tabs are UI placeholders.
+- `app.py`: Streamlit interface with tabs for Baseline RAG, Contextual Query Rewriting, HyDE, and Multi-Query + Fusion.
 - `rag/`: Retrieval pipelines and shared RAG components:
   - `common.py`: Shared ChromaDB and LM Studio clients, prompt construction, and answer generation.
   - `baseline.py`: Baseline semantic retrieval and the `answer_baseline()` entry point.
-  - `contextual_rewriting.py`: Placeholder for history-aware query rewriting.
+  - `contextual_rewriting.py`: Rewrites follow-up questions using chat history, then retrieves chunks and generates an answer.
   - `hyde.py`: Placeholder for Hypothetical Document Embeddings (HyDE).
   - `multi_query.py`: Placeholder for multi-query retrieval and fusion search.
   - `__init__.py`: Exposes the implemented pipeline entry points from the `rag` package.
 
-Only the baseline pipeline is currently connected to the Streamlit interface. The experimental tabs are visible but their retrieval pipelines have not yet been implemented.
+The Contextual Query Rewriting tab shows the conversation in a scrollable chat history and keeps the message box at the bottom. It rewrites a question only when earlier messages exist. Chat history is stored in Streamlit session state and lasts for the active session.
 
 ## Setup and Usage
 
@@ -72,7 +72,7 @@ pipenv run python ingest.py
 pipenv run streamlit run app.py
 ```
 
-Enter a question and choose how many matching chunks to retrieve (1–20; default 5). The answer appears with a short preview of each retrieved chunk below it.
+In Baseline RAG, enter a question and choose how many chunks to retrieve (1–20; default 5). In Contextual Query Rewriting, submit a message in the chat box; follow-up questions use the earlier turns as context. Both tabs show the answer and list retrieved chunks in an expander. Retrieval excludes chunks whose ChromaDB distance is greater than `0.8`, so fewer chunks than requested may be shown.
 
 ### Check retrieval
 
