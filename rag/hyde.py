@@ -10,10 +10,12 @@ from rag.common import (
 
 
 HYPOTHETICAL_ANSWER_INSTRUCTIONS = """
-Write a short, plausible answer to the user's personal finance question that
-could appear in a financial education textbook. Focus on relevant concepts and
-terms that may help find useful reference material. Do not mention that the
-answer is hypothetical, do not cite sources, and do not add meta commentary.
+Write one short, keyword-rich sentence of hypothetical textbook-style text
+related to the user's personal finance question. Prioritize the main topic,
+relevant financial concepts, and useful terminology or synonyms that may help
+retrieve reference material. Do not try to fully resolve the question, mention
+that the text is hypothetical, cite sources, or add meta commentary. Return
+only the hypothetical sentence.
 """.strip()
 
 
