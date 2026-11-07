@@ -47,10 +47,28 @@ with baseline_tab:
             st.warning("Please enter a question.")
 
 with rewriting_tab:
-    st.info("Contextual Query Rewriting is a placeholder. This technique is not implemented yet.")
+    st.write("Ask follow-up questions about personal finance.")
+
+    # Keep this tab's conversation across Streamlit reruns.
+    if "rewriting_messages" not in st.session_state:
+        st.session_state["rewriting_messages"] = []
+
+    # Render the saved conversation.
+    for message in st.session_state["rewriting_messages"]:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+    # Collect a new message. Pipeline processing will be added in a later step.
+    user_message = st.chat_input(
+        "Ask a question", key="rewriting_chat_input"
+    )
 
 with hyde_tab:
-    st.info("HyDE (Hypothetical Document Embeddings) is a placeholder. This technique is not implemented yet.")
+    st.info(
+        "HyDE (Hypothetical Document Embeddings) is a placeholder. This technique is not implemented yet."
+    )
 
 with multi_query_tab:
-    st.info("Multi-query retrieval with fusion search is a placeholder. This technique is not implemented yet.")
+    st.info(
+        "Multi-query retrieval with fusion search is a placeholder. This technique is not implemented yet."
+    )
