@@ -24,7 +24,7 @@ if not lm_studio_api_key:
 llm_client = OpenAI(base_url=lm_studio_base_url, api_key=lm_studio_api_key)
 
 # Exclude retrieved chunks whose ChromaDB distance exceeds this cutoff.
-MAX_DISTANCE = 0.8
+MAX_DISTANCE = 1.0
 
 # Keep response behavior consistent across questions and retrieved documents.
 SYSTEM_INSTRUCTIONS = """
