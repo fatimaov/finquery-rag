@@ -77,3 +77,13 @@ def fuse_ranked_results(
 
     # Python's stable sort keeps first-seen order when scores are tied.
     return sorted(scores.items(), key=lambda item: item[1], reverse=True)
+
+
+def select_top_chunks(
+    fused_results: list[tuple[str, float]], top_k: int = 5
+) -> list[str]:
+    """Return the top_k chunks from the fused ranking for the answer context."""
+    if top_k < 1:
+        raise ValueError("top_k must be at least 1")
+
+    return [chunk for chunk, _score in fused_results[:top_k]]
