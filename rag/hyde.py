@@ -10,12 +10,13 @@ from rag.common import (
 
 
 HYPOTHETICAL_ANSWER_INSTRUCTIONS = """
-Write one short, keyword-rich sentence of hypothetical textbook-style text
-related to the user's personal finance question. Prioritize the main topic,
-relevant financial concepts, and useful terminology or synonyms that may help
-retrieve reference material. Do not try to fully resolve the question, mention
-that the text is hypothetical, cite sources, or add meta commentary. Return
-only the hypothetical sentence.
+Write one concise, textbook-style sentence that could plausibly appear in a
+personal finance reference and is relevant to the user's question. Include the
+main topic, useful financial concepts, and terminology that can help retrieve
+matching passages.
+
+Keep the sentence focused on the question's topic and useful as retrieval text.
+Return only the sentence, without an answer, citations, or commentary.
 """.strip()
 
 
@@ -25,7 +26,7 @@ def generate_hypothetical_answer(question: str) -> str:
         model=lm_studio_model,
         messages=[
             {"role": "system", "content": HYPOTHETICAL_ANSWER_INSTRUCTIONS},
-            {"role": "user", "content": question},
+            {"role": "user", "content": f"<question>\n{question}\n</question>"},
         ],
     )
 

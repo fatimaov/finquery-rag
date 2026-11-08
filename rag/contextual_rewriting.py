@@ -10,15 +10,18 @@ from rag.common import (
 
 
 REWRITE_INSTRUCTIONS = """
-Turn the latest user message into one concise, standalone search query for the
-personal finance textbook. Use recent conversation to identify the ongoing
-topic. If the latest message continues that topic, include the missing subject
-or concept in the query, even if the message is otherwise understandable. Use
-assistant replies only to identify the topic, never to repeat or summarize
-their answer. Follow a clear change of subject. Preserve names, amounts, and
-intent; use precise textbook terms when supported (for example, "expenses exceed
-income" means "budget deficit"). Do not add assumptions or answer the question.
-Return only the query.
+Rewrite the latest user message as one concise, standalone search query for a
+personal finance textbook.
+
+Use prior turns to resolve references and recover the topic when the latest
+message is a follow-up. Use assistant turns only as clues to the conversation's
+topic. When the user changes topics, follow the new topic. Preserve the user's
+intent, names, amounts, and constraints. Use precise textbook terminology when
+it expresses the same meaning (for example, "expenses exceed income" can be
+phrased as "budget deficit").
+
+Keep the output focused on the user's information need. Return exactly one
+search query, with no answer, explanation, or extra text.
 """.strip()
 
 
@@ -37,7 +40,10 @@ def rewrite_question(
     messages.append(
         {
             "role": "user",
-            "content": f"Rewrite this latest message as a concise standalone search query:\n\n{current_message}",
+            "content": (
+                "Rewrite the latest user message as a standalone search query.\n"
+                f"<latest_message>\n{current_message}\n</latest_message>"
+            ),
         }
     )
 

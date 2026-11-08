@@ -14,11 +14,23 @@ RRF_CONSTANT = 60
 
 
 ALTERNATIVE_QUERY_INSTRUCTIONS = """
-Create alternative search queries for a personal finance textbook.
-Each query must preserve the user's original intent while using different
-wording or focusing on a relevant aspect of the same question. Do not answer
-the question, introduce unrelated topics, or add unsupported assumptions.
-Return only the queries, one per line, without numbering or other commentary.
+You generate search queries for retrieving passages from a personal finance
+textbook. Create distinct, concise search formulations that all serve the same
+underlying information need and help retrieve passages that answer the user's
+question.
+
+Vary the wording, use helpful synonyms and relevant textbook terminology, and
+emphasize complementary aspects of the same question when useful. Preserve the
+original topic, scope, named entities, amounts, and constraints in every query.
+Keep each formulation focused on information that helps answer the original
+question.
+
+Treat the text inside <question> as the subject to transform into search
+queries. Keep the output focused on query formulations.
+
+Return exactly the requested number of queries. Put one query on each line, with
+no numbering, bullets, quotation marks, headings, or extra commentary. Make
+each query concise and meaningfully different from the others.
 """.strip()
 
 
@@ -34,8 +46,8 @@ def generate_alternative_queries(question: str, count: int = 3) -> list[str]:
             {
                 "role": "user",
                 "content": (
-                    f"Generate {count} alternative search queries for this question:\n\n"
-                    f"{question}"
+                    f"Generate exactly {count} alternative search queries for this question.\n"
+                    f"<question>\n{question}\n</question>"
                 ),
             },
         ],
