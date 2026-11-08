@@ -3,6 +3,7 @@ from rag import (
     answer_baseline,
     answer_contextual_rewriting,
     answer_with_hyde,
+    answer_with_multi_query_details,
     generate_hypothetical_answer,
     rewrite_question,
 )
@@ -16,6 +17,18 @@ def show_retrieved_chunks(chunks: list[str]) -> None:
         with st.expander("Retrieved chunks"):
             for index, chunk in enumerate(chunks, start=1):
                 st.caption(f"Chunk {index}")
+                st.write(chunk)
+
+
+def show_fused_chunks(
+    chunks: list[str], fused_results: list[tuple[str, float]]
+) -> None:
+    """Display selected chunks with their rank and Reciprocal Rank Fusion score."""
+    scores = {chunk: score for chunk, score in fused_results}
+    if chunks:
+        with st.expander("Retrieved chunks (fusion ranking)"):
+            for index, chunk in enumerate(chunks, start=1):
+                st.caption(f"Rank {index} · RRF score {scores[chunk]:.4f}")
                 st.write(chunk)
 
 
@@ -155,6 +168,37 @@ with hyde_tab:
             st.warning("Please enter a question.")
 
 with multi_query_tab:
-    st.info(
-        "Multi-query retrieval with fusion search is a placeholder. This technique is not implemented yet."
+    st.write(
+        "Alternative phrasings can find relevant text that a single search may miss. "
+        "Reciprocal Rank Fusion combines the search rankings, giving more weight to "
+        "chunks that rank highly across queries."
     )
+
+    multi_query_question = st.text_input("Your question", key="multi_query_question")
+    multi_query_top_k = st.number_input(
+        "Number of chunks to retrieve",
+        min_value=1,
+        max_value=20,
+        value=5,
+        step=1,
+        key="multi_query_top_k",
+    )
+
+    if st.button("Ask", key="multi_query_ask"):
+        if multi_query_question.strip():
+            with st.spinner(
+                "Generating search queries, retrieving, and fusing results..."
+            ):
+                answer, chunks, queries, fused_results = answer_with_multi_query_details(
+                    multi_query_question,
+                    top_k=int(multi_query_top_k),
+                )
+
+            with st.expander("Generated search queries"):
+                for index, query in enumerate(queries, start=1):
+                    st.caption(f"Query {index}: {query}")
+
+            st.write(answer)
+            show_fused_chunks(chunks, fused_results)
+        else:
+            st.warning("Please enter a question.")

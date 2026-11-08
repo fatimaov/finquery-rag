@@ -98,14 +98,29 @@ def select_top_chunks(
 def answer_with_multi_query(
     question: str, top_k: int = 5, query_count: int = 3
 ) -> tuple[str, list[str]]:
-    """Answer the original question using the top chunks from fused searches."""
+    """Return an answer and the selected chunks, following the other pipelines."""
+    answer, chunks, _queries, _fused_results = answer_with_multi_query_details(
+        question, top_k=top_k, query_count=query_count
+    )
+    return answer, chunks
+
+
+def answer_with_multi_query_details(
+    question: str, top_k: int = 5, query_count: int = 3
+) -> tuple[str, list[str], list[str], list[tuple[str, float]]]:
+    """Return the answer plus generated queries and the full fused ranking."""
     queries = generate_alternative_queries(question, count=query_count)
     ranked_results = retrieve_chunks_for_queries(queries, top_k=top_k)
     fused_results = fuse_ranked_results(ranked_results)
     chunks = select_top_chunks(fused_results, top_k=top_k)
 
     if not chunks:
-        return "I couldn't find relevant information in the available documents.", []
+        return (
+            "I couldn't find relevant information in the available documents.",
+            [],
+            queries,
+            fused_results,
+        )
 
     prompt = build_prompt(question, chunks)
-    return generate_answer(prompt), chunks
+    return generate_answer(prompt), chunks, queries, fused_results
