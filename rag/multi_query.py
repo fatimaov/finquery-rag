@@ -2,7 +2,9 @@
 
 import re
 
-from rag.common import llm_client, lm_studio_model
+from rag.common import llm_client, lm_studio_model, retrieve_chunks
+
+RRF_CONSTANT = 60
 
 
 ALTERNATIVE_QUERY_INSTRUCTIONS = """
@@ -47,3 +49,31 @@ def generate_alternative_queries(question: str, count: int = 3) -> list[str]:
             break
 
     return queries or [question.strip()]
+
+
+def retrieve_chunks_for_queries(
+    queries: list[str], top_k: int = 5
+) -> dict[str, list[str]]:
+    """Retrieve a ranked chunk list for each query, preserving query order."""
+    return {query: retrieve_chunks(query, top_k) for query in queries}
+
+
+def fuse_ranked_results(
+    ranked_results: dict[str, list[str]], rrf_constant: int = RRF_CONSTANT
+) -> list[tuple[str, float]]:
+    """Combine query rankings with Reciprocal Rank Fusion (highest score first)."""
+    if rrf_constant < 0:
+        raise ValueError("rrf_constant must be zero or greater")
+
+    scores: dict[str, float] = {}
+    for chunks in ranked_results.values():
+        # Ranks start at 1; missing chunks add no contribution for that query.
+        seen_in_query = set()
+        for rank, chunk in enumerate(chunks, start=1):
+            if chunk in seen_in_query:
+                continue
+            seen_in_query.add(chunk)
+            scores[chunk] = scores.get(chunk, 0.0) + 1 / (rrf_constant + rank)
+
+    # Python's stable sort keeps first-seen order when scores are tied.
+    return sorted(scores.items(), key=lambda item: item[1], reverse=True)
