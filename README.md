@@ -48,7 +48,7 @@ Requires Python 3.13, [Pipenv](https://pipenv.pypa.io/en/latest/), and [LM Studi
 pip install pipenv
 pipenv install
 pipenv run python ingest.py
-pipenv run streamlit run app.py
+pipenv run start
 ```
 
 Ingestion fetches the textbook PDF into memory, extracts the selected chapters, and builds the local vector database. Open the Streamlit URL, choose a RAG tab, and ask a question.
