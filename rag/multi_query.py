@@ -2,7 +2,13 @@
 
 import re
 
-from rag.common import llm_client, lm_studio_model, retrieve_chunks
+from rag.common import (
+    build_prompt,
+    generate_answer,
+    llm_client,
+    lm_studio_model,
+    retrieve_chunks,
+)
 
 RRF_CONSTANT = 60
 
@@ -87,3 +93,19 @@ def select_top_chunks(
         raise ValueError("top_k must be at least 1")
 
     return [chunk for chunk, _score in fused_results[:top_k]]
+
+
+def answer_with_multi_query(
+    question: str, top_k: int = 5, query_count: int = 3
+) -> tuple[str, list[str]]:
+    """Answer the original question using the top chunks from fused searches."""
+    queries = generate_alternative_queries(question, count=query_count)
+    ranked_results = retrieve_chunks_for_queries(queries, top_k=top_k)
+    fused_results = fuse_ranked_results(ranked_results)
+    chunks = select_top_chunks(fused_results, top_k=top_k)
+
+    if not chunks:
+        return "I couldn't find relevant information in the available documents.", []
+
+    prompt = build_prompt(question, chunks)
+    return generate_answer(prompt), chunks
