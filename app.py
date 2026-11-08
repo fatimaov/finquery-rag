@@ -68,6 +68,12 @@ with baseline_tab:
 
 with rewriting_tab:
     st.write("Ask follow-up questions about personal finance.")
+
+    def clear_rewriting_chat() -> None:
+        """Reset the contextual rewriting conversation and its input."""
+        st.session_state["rewriting_messages"] = []
+        st.session_state["rewriting_chat_input"] = ""
+
     rewriting_top_k = st.number_input(
         "Number of chunks to retrieve",
         min_value=1,
@@ -80,6 +86,13 @@ with rewriting_tab:
     # Keep this tab's conversation across Streamlit reruns.
     if "rewriting_messages" not in st.session_state:
         st.session_state["rewriting_messages"] = []
+
+    st.button(
+        "Clear chat",
+        key="clear_rewriting_chat",
+        on_click=clear_rewriting_chat,
+        disabled=not st.session_state["rewriting_messages"],
+    )
 
     # Only create the bottom-anchored input while this tab is selected.
     user_message = None
